@@ -22,51 +22,34 @@ struct CountCheckComponent: View {
         }
     }
     
-    // Better height calculation
-    private var calculatedHeight: CGFloat {
-        if isConfirmed.wrappedValue {
-            let nonZeroCount = nonZeroProducts.count
-            if nonZeroCount == 0 {
-                return 80 //minimum height when no products
-            }
-            return CGFloat(nonZeroCount * 50 + 60) // 50 per product + padding
-        } else {
-            let productCount = productIDs.count
-            let baseHeight: CGFloat = 120
-            let productHeight: CGFloat = 150
-            let dividerHeight: CGFloat = 20 // between products
-            
-            return baseHeight + (CGFloat(productCount) * productHeight) + (CGFloat(max(0, productCount - 1)) * dividerHeight)
-        }
-    }
     
     var body: some View {
-        RoundedRectangle(cornerRadius: 10)
-            .fill(Color.gray)
-            .frame(width: 350)
-            .overlay(
-                VStack(spacing: 16) {
-                    if isConfirmed.wrappedValue {
-                        summaryView
-                    } else {
-                        fullView
-                    }
+        ZStack{
+            RoundedRectangle(cornerRadius: 16)
+                .shadow(radius: 3)
+                .foregroundStyle(Color(UIColor.systemBackground))
+            VStack{
+                if isConfirmed.wrappedValue {
+                    summaryView
+                } else {
+                    fullView
                 }
-                    .padding()
-                    .animation(.easeInOut, value: isConfirmed.wrappedValue)
-            )
-            .frame(height: calculatedHeight)
-            .animation(.easeInOut(duration: 0.4), value: isConfirmed.wrappedValue)
-            .animation(.easeInOut(duration: 0.4), value: productIDs.count)
+            }
+            .padding()
+            .animation(.easeInOut, value: isConfirmed.wrappedValue)
+        }
+        .animation(.easeInOut(duration: 0.4), value: isConfirmed.wrappedValue)
+        .animation(.easeInOut(duration: 0.4), value: productIDs.count)
     }
     
     private var fullView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 0) {
             // Header
             HStack {
                 Text("Level \(level)")
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .font(.title2)
+                    .fontWeight(.bold)
                 Spacer()
                 Button {
                     addProduct = true
@@ -79,25 +62,23 @@ struct CountCheckComponent: View {
                 .padding(.leading, 10)
             }
             
+            // product row
             ForEach(productIDs.indices, id: \.self) { index in
                 VStack(spacing: 10) {
-                    Text("Product: \(productIDs[index])")
-                        .foregroundColor(.black)
-                        .bold()
-                        .font(.system(size: 21, weight: .medium))
-                        .padding(.horizontal, 10)
-                        .padding(.bottom, 5)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    Divider()
+                        .frame(height: 1)
+                        .background(Color.gray)
                     
+                    productName(product: productIDs[index])
+
                     counterSection(forIndex: index)
-                    
-                    if index < productIDs.count - 1 {
-                        Divider()
-                            .background(Color.white)
-                            .padding(.top)
-                    }
+                        .padding(.bottom, index == productIDs.count - 1 ? 0 : 16)
                 }
             }
+            Divider()
+                .frame(height: 1)
+                .background(Color.gray)
+                .padding(.top)
             // Confirm button
             Button {
                 withAnimation {
@@ -105,43 +86,47 @@ struct CountCheckComponent: View {
                     isConfirmed.wrappedValue = true
                 }
             } label: {
-                Capsule()
-                    .fill(Color.green)
-                    .frame(width: 110, height: 40)
-                    .overlay(
-                        Text("Confirm")
-                            .foregroundColor(.white)
-                            .font(.system(size: 18, weight: .bold))
-                    )
+                ZStack{
+                    RoundedRectangle(cornerRadius: 10)
+                        .frame(height: 50)
+                        .foregroundStyle(.green)
+                    Text("Confirm")
+                        .foregroundColor(.white)
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                }
             }
-            .padding(.top, 10)
+            .padding(.top, 20)
         }
     }
     
     private var summaryView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             if nonZeroProducts.isEmpty {
                 Text("No products in level \(level)")
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .italic()
             } else {
                 ForEach(nonZeroProducts.indices, id: \.self) { index in
                     let product = nonZeroProducts[index]
                     HStack {
-                        Text("Product: \(product.id)")
-                            .foregroundColor(.white)
-                            .bold()
-                            .font(.system(size: 16))
-                            .padding(.leading, 10)
+                        productName(product: product.id)
                         
                         Spacer()
                         
                         Text("\(product.count)")
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .font(.system(size: 28, weight: .bold))
                         
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
+
+                    }
+                    if index != nonZeroProducts.count - 1 {
+                        Divider()
+                            .background(.gray)
+                            .frame(height: 1)
+                            .padding(.vertical, 6)
                     }
                 }
             }
@@ -175,38 +160,50 @@ struct CountCheckComponent: View {
     
     // MARK: - Counter View
     private func counterSection(forIndex index: Int) -> some View {
-        HStack(spacing: 30) {
+        HStack{
+            // subtract
             Button {
                 if boxCounts[index] > 0 {
                     boxCounts[index] -= 1
                 }
             } label: {
-                Circle()
-                    .fill(Color.blue)
+                Image(systemName: "minus.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(Color.blue)
                     .frame(width: 60, height: 60)
-                    .overlay(
-                        Text("-")
-                            .font(.system(size: 35, weight: .bold))
-                            .foregroundColor(.white)
-                    )
             }
-            
+            Spacer()
+            // counter
             Text("\(boxCounts[index])")
                 .font(.system(size: 40, weight: .bold))
-                .foregroundColor(.white)
-            
+                .foregroundColor(.primary)
+            Spacer()
+            // add
             Button {
                 boxCounts[index] += 1
             } label: {
-                Circle()
-                    .fill(Color.blue)
+                Image(systemName: "plus.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(Color.blue)
                     .frame(width: 60, height: 60)
-                    .overlay(
-                        Text("+")
-                            .font(.system(size: 35, weight: .bold))
-                            .foregroundColor(.white)
-                    )
             }
+        }
+        .padding(.horizontal, 56)
+    }
+    
+    private func productName(product: String) -> some View {
+        HStack(spacing: 0){
+            Text("Product: ")
+                .foregroundColor(.secondary)
+                .bold()
+                .font(.system(size: 21, weight: .medium))
+            Text(product)
+                .foregroundColor(.primary)
+                .bold()
+                .font(.system(size: 21, weight: .medium))
+            Spacer()
         }
     }
 }

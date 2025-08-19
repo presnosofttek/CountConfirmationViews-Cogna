@@ -29,71 +29,77 @@ struct CountConfirmationView: View {
     ]
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                Text("Box Confirmation")
-                    .font(.largeTitle)
-                    .padding(.top)
-                
-                ForEach(0..<boxCountsByLevel.count, id: \.self) { index in
-                    CountCheckComponent(
-                        level: index + 1,
-                        boxCounts: $boxCountsByLevel[index],
-                        productIDs: $productIDsByLevel[index],
-                        addProduct: Binding(
-                            get: { addProduct && selectedAddLevel == index },
-                            set: { newValue in
-                                if newValue {
-                                    selectedAddLevel = index
-                                    addProduct = true
-                                } else {
-                                    addProduct = false
+        ZStack{
+            Color(UIColor.systemGroupedBackground)
+                .ignoresSafeArea(edges: .all)
+            ScrollView {
+                VStack(spacing: 20) {
+                    // for each level
+                    ForEach(0..<boxCountsByLevel.count, id: \.self) { index in
+                        CountCheckComponent(
+                            level: index + 1,
+                            boxCounts: $boxCountsByLevel[index],
+                            productIDs: $productIDsByLevel[index],
+                            addProduct: Binding(
+                                get: { addProduct && selectedAddLevel == index },
+                                set: { newValue in
+                                    if newValue {
+                                        selectedAddLevel = index
+                                        addProduct = true
+                                    } else {
+                                        addProduct = false
+                                    }
                                 }
-                            }
-                        ),
-                        isConfirmed: $confirmedLevels[index]
-                    )
-                }
-                
-                Spacer()
-                
-                HStack {
-                    Button("Cancel") {
-                        resetAll()
+                            ),
+                            isConfirmed: $confirmedLevels[index]
+                        )
                     }
-                    .padding()
-                    .frame(width: 100)
-                    .background(Color.red)
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 5)
-                            .stroke(Color.red.opacity(0.8), lineWidth: 2)
-                    )
-                    
                     Spacer()
-                    
-                    Button("Confirm") {
-                        print("All confirmed!")
+                    // cancel and confirm
+                    HStack {
+                        // Cancel
+                        Button {
+                            resetAll()
+                        } label: {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .foregroundColor(.red)
+                                    .frame(height: 60)
+                                Text("Cancel")
+                                    .foregroundStyle(.white)
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        
+                        // Confirm
+                        Button {
+                            print("All confirmed!")
+                        } label: {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .foregroundStyle(allConfirmed ? Color.green : Color.gray)
+                                    .frame(height: 60)
+                                Text("Confirm")
+                                    .foregroundStyle(.white)
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .disabled(!allConfirmed)
+                        .buttonStyle(.plain)
                     }
-                    .padding()
-                    .frame(width: 100)
-                    .background(allConfirmed ? Color.green : Color.gray)
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 5)
-                            .stroke(allConfirmed ? Color.green.opacity(0.8) : Color.gray, lineWidth: 2)
-                    )
-                    .disabled(!allConfirmed)
                 }
-                .padding(.horizontal, 30)
-                .padding(.bottom)
+                .padding()
             }
-            .padding()
-            .background(Color.white.opacity(0.2))
-            .cornerRadius(20)
         }
+        .toolbar(content: {
+            // header
+            Text("Box Confirmation")
+                .font(.largeTitle)
+                .padding(.top)
+        })
         .sheet(isPresented: $addProduct, content: {
             AddProductSheet(
                 boxCountsByLevel: $boxCountsByLevel,
