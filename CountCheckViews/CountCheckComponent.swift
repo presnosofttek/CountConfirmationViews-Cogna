@@ -55,12 +55,12 @@ struct CountCheckComponent: View {
                     addProduct = true
                     //OPEN sheet
                 } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 30))
-                        .foregroundStyle(.white)
+                    Image(systemName: "plus")
+                        .font(.title2)
                 }
                 .padding(.leading, 10)
             }
+            .padding(.bottom, 8)
             
             // product row
             ForEach(productIDs.indices, id: \.self) { index in

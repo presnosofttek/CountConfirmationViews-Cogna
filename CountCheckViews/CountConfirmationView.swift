@@ -106,6 +106,7 @@ struct CountConfirmationView: View {
                 productIDsByLevel: $productIDsByLevel,
                 levelIndex: selectedAddLevel
             )
+            .presentationDetents([.fraction(0.5)])
         })
     }
 
@@ -142,56 +143,61 @@ struct AddProductSheet: View {
     var levelIndex: Int
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
+        ZStack{
+            Color(UIColor.systemBackground)
+            
+            VStack(alignment: .leading, spacing: 6) {
 
-            Text("Select a Product")
-                .font(.title2)
-                .bold()
-
-            Text("Pick a product to add to Level \(levelIndex + 1).")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-                .multilineTextAlignment(.center)
-
-            Picker("Tap to pick a product", selection: $selectedProduct) {
-                ForEach(products, id: \.self) { product in
-                    Text("Product ID: \(product)").tag(product)
-                }
-            }
-            .pickerStyle(.wheel)
-            .frame(maxHeight: 150)
-
-            if !selectedProduct.isEmpty {
-                Text("Selected: \(selectedProduct)")
-                    .font(.headline)
-                    .foregroundColor(.green)
-            } else {
-                Text("Product not selected")
-                    .font(.headline)
-                    .foregroundColor(.red)
-            }
-
-            Spacer()
-
-            Button(action: {
-                if !selectedProduct.isEmpty {
-                    productIDsByLevel[levelIndex].append(selectedProduct)
-                    boxCountsByLevel[levelIndex].append(0)
-                }
-                dismiss()
-            }) {
-                Text("Finish")
+                Text("Select a Product")
+                    .font(.title2)
                     .bold()
+                Divider()
+                    .background(.gray)
+                    .frame(height: 1)
+                Text("Pick a product to add to Level \(levelIndex + 1).")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Picker("Tap to pick a product", selection: $selectedProduct) {
+                    ForEach(products, id: \.self) { product in
+                        Text("Product ID: \(product)").tag(product)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .background{
+                    Color(UIColor.secondarySystemBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .shadow(radius: 1)
+                }
+                .frame(maxHeight: 150)
+
+                Button(action: {
+                    if !selectedProduct.isEmpty {
+                        productIDsByLevel[levelIndex].append(selectedProduct)
+                        boxCountsByLevel[levelIndex].append(0)
+                    }
+                    dismiss()
+                }) {
+                    HStack(spacing: 0){
+                        Text("Add Product ")
+                        if !selectedProduct.isEmpty {
+                            Text(": \(selectedProduct)")
+                        }
+                    }
+                    .fontWeight(.semibold)
+                    .padding(.vertical)
                     .frame(maxWidth: .infinity)
-                    .padding()
                     .background(selectedProduct.isEmpty ? Color.gray : Color.blue)
                     .foregroundColor(.white)
                     .cornerRadius(10)
+                }
+                .disabled(selectedProduct.isEmpty)
+                .padding(.top, 30)
+                Spacer()
+
             }
-            .disabled(selectedProduct.isEmpty)
-            .padding(.horizontal)
+            .padding()
         }
-        .padding()
     }
 }
