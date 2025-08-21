@@ -8,20 +8,9 @@
 import SwiftUI
 
 struct CountCheckComponent: View {
-    let level: Int
-    @Binding var boxCounts: [Int]
-    @Binding var productIDs: [String]
-    @Binding var addProduct: Bool
-    
-    let isConfirmed: Binding<Bool>
-    
-    // Computed property to get non-zero products for display
-    private var nonZeroProducts: [(id: String, count: Int, originalIndex: Int)] {
-        zip(productIDs, boxCounts).enumerated().compactMap { index, element in
-            element.1 > 0 ? (id: element.0, count: element.1, originalIndex: index) : nil
-        }
-    }
-    
+    @Binding var level: Level
+    @Binding var selectedAddLevel: Level
+    @Binding var showAddSheet : Bool
     
     var body: some View {
         ZStack{
@@ -29,31 +18,31 @@ struct CountCheckComponent: View {
                 .shadow(radius: 3)
                 .foregroundStyle(Color(UIColor.systemBackground))
             VStack{
-                if isConfirmed.wrappedValue {
+                if level.isConfirmed {
                     summaryView
                 } else {
                     fullView
                 }
             }
             .padding()
-            .animation(.easeInOut, value: isConfirmed.wrappedValue)
+            .animation(.easeInOut, value: level.isConfirmed)
         }
-        .animation(.easeInOut(duration: 0.4), value: isConfirmed.wrappedValue)
-        .animation(.easeInOut(duration: 0.4), value: productIDs.count)
+        .animation(.easeInOut(duration: 0.4), value: level.isConfirmed)
+//        .animation(.easeInOut(duration: 0.4), value: productIDs.count)
     }
     
     private var fullView: some View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("Level \(level)")
+                Text("Level \(level.level)")
                     .foregroundColor(.primary)
                     .font(.title2)
                     .fontWeight(.bold)
                 Spacer()
                 Button {
-                    addProduct = true
-                    //OPEN sheet
+                    selectedAddLevel = level
+                    showAddSheet = true
                 } label: {
                     Image(systemName: "plus")
                         .font(.title2)
@@ -63,16 +52,16 @@ struct CountCheckComponent: View {
             .padding(.bottom, 8)
             
             // product row
-            ForEach(productIDs.indices, id: \.self) { index in
+            ForEach(Array(level.products.keys), id: \.self) { key in
                 VStack(spacing: 10) {
                     Divider()
                         .frame(height: 1)
                         .background(Color.gray)
                     
-                    productName(product: productIDs[index])
+                    productName(product: key)
 
-                    counterSection(forIndex: index)
-                        .padding(.bottom, index == productIDs.count - 1 ? 0 : 16)
+                    counterSection(for: key)
+                        .padding(.bottom, key == Array(level.products.keys).last ? 0 : 16)
                 }
             }
             Divider()
@@ -83,7 +72,7 @@ struct CountCheckComponent: View {
             Button {
                 withAnimation {
                     removeZeroQuantityProducts()
-                    isConfirmed.wrappedValue = true
+                    level.isConfirmed = true
                 }
             } label: {
                 ZStack{
@@ -102,19 +91,18 @@ struct CountCheckComponent: View {
     
     private var summaryView: some View {
         VStack(spacing: 0) {
-            if nonZeroProducts.isEmpty {
+            if level.products.filter({ $0.value > 0 }).isEmpty {
                 Text("No products in level \(level)")
                     .foregroundColor(.primary)
                     .italic()
             } else {
-                ForEach(nonZeroProducts.indices, id: \.self) { index in
-                    let product = nonZeroProducts[index]
+                ForEach(Array(level.products.filter { $0.value > 0 }.keys), id: \.self) { productKey in
                     HStack {
-                        productName(product: product.id)
+                        productName(product: productKey)
                         
                         Spacer()
                         
-                        Text("\(product.count)")
+                        Text("\(level.products[productKey] ?? 0)")
                             .foregroundColor(.primary)
                             .font(.system(size: 28, weight: .bold))
                         
@@ -122,7 +110,7 @@ struct CountCheckComponent: View {
                             .foregroundStyle(.green)
 
                     }
-                    if index != nonZeroProducts.count - 1 {
+                    if productKey != Array(level.products.filter { $0.value > 0 }.keys).last {
                         Divider()
                             .background(.gray)
                             .frame(height: 1)
@@ -135,36 +123,23 @@ struct CountCheckComponent: View {
         .contentShape(Rectangle())
         .onTapGesture {
             withAnimation {
-                isConfirmed.wrappedValue = false
+                level.isConfirmed = false
             }
         }
     }
     
     // MARK: - Helper Functions
     private func removeZeroQuantityProducts() {
-        var indicesToRemove: [Int] = []
-        
-        // Find indices of products with zero quantity
-        for i in boxCounts.indices.reversed() {
-            if boxCounts[i] == 0 {
-                indicesToRemove.append(i)
-            }
-        }
-        
-        // Remove products with zero quantity (in reverse order to maintain correct indices)
-        for index in indicesToRemove {
-            productIDs.remove(at: index)
-            boxCounts.remove(at: index)
-        }
+        level.products = level.products.filter { $0.value > 0 }
     }
     
     // MARK: - Counter View
-    private func counterSection(forIndex index: Int) -> some View {
+    private func counterSection(for productKey: String) -> some View {
         HStack{
             // subtract
             Button {
-                if boxCounts[index] > 0 {
-                    boxCounts[index] -= 1
+                if let currentCount = level.products[productKey], currentCount > 0 {
+                    level.products[productKey] = currentCount - 1
                 }
             } label: {
                 Image(systemName: "minus.circle.fill")
@@ -175,13 +150,13 @@ struct CountCheckComponent: View {
             }
             Spacer()
             // counter
-            Text("\(boxCounts[index])")
+            Text("\(level.products[productKey] ?? 0)")
                 .font(.system(size: 40, weight: .bold))
                 .foregroundColor(.primary)
             Spacer()
             // add
             Button {
-                boxCounts[index] += 1
+                level.products[productKey] = (level.products[productKey] ?? 0) + 1
             } label: {
                 Image(systemName: "plus.circle.fill")
                     .resizable()
@@ -208,11 +183,12 @@ struct CountCheckComponent: View {
     }
 }
 
-#Preview {
-    StatefulPreviewWrapper([6, 3]) { boxCounts in
-        CountCheckComponent(level: 1, boxCounts: boxCounts, productIDs: .constant(["12345", "67890"]), addProduct: .constant(false), isConfirmed: .constant(false))
-    }
-}
+//#Preview {
+//    CountCheckComponent(level: .constant(Level(level: 1,
+//                                     products: ["ST242211": 16],
+//                                     centerBoxes: [:],
+//                                     byFace: ["back" : ["ST242211": 8], "front" : ["ST242211": 8]])))
+//}
 
 struct StatefulPreviewWrapper<Value>: View {
     @State var value: Value
